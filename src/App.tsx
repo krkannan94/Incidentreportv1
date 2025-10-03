@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState } from 'react';
 import { LoginScreen } from './components/LoginScreen';
 import { EntryScreen } from './components/EntryScreen';
 import { WrittenReportForm } from './components/WrittenReportForm';
@@ -6,15 +6,16 @@ import { VocalReportFlow } from './components/VocalReportFlow';
 import { ReportModal } from './components/ReportModal';
 import { GeneratedReports } from './components/GeneratedReports';
 import { HelpSupport } from './components/HelpSupport';
+import { AppProvider } from './context/AppContext';
+import { Report } from './lib/supabase';
 
 type Screen = 'login' | 'entry' | 'written' | 'vocal' | 'generated' | 'help';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
   const [userName, setUserName] = useState('');
-  const [reportData, setReportData] = useState<any>(null);
+  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [showNestedModal, setShowNestedModal] = useState(false);
 
   const handleLogin = (name: string) => {
     setUserName(name);
@@ -34,8 +35,13 @@ export default function App() {
     setUserName('');
   };
 
-  const handleReportGeneration = (data: any) => {
-    setReportData(data);
+  const handleReportGeneration = (report: Report) => {
+    setSelectedReport(report);
+    setShowReportModal(true);
+  };
+
+  const handleViewReport = (report: Report) => {
+    setSelectedReport(report);
     setShowReportModal(true);
   };
 
@@ -44,32 +50,21 @@ export default function App() {
     setCurrentScreen('entry');
   };
 
-  const handleNestedModalChange = useCallback((isOpen: boolean) => {
-    setShowNestedModal(isOpen);
-  }, []);
-
-  const shouldBlur = showReportModal || showNestedModal;
-
-
-
   return (
-    <div className="min-h-screen w-full overflow-x-hidden">
-      {/* Backdrop blur overlay */}
-      {shouldBlur && <div className="modal-backdrop" />}
-      
-      <div className="w-full max-w-full">
+    <AppProvider>
+      <div className="min-h-screen w-full">
         {currentScreen === 'login' && (
           <LoginScreen onLogin={handleLogin} />
         )}
-        
+
         {currentScreen === 'entry' && (
-          <EntryScreen 
-            userName={userName} 
+          <EntryScreen
+            userName={userName}
             onSelectMethod={handleMethodSelection}
             onBack={handleBackToLogin}
           />
         )}
-        
+
         {currentScreen === 'written' && (
           <WrittenReportForm
             userName={userName}
@@ -77,39 +72,39 @@ export default function App() {
             onGenerateReport={handleReportGeneration}
           />
         )}
-        
+
         {currentScreen === 'vocal' && (
           <VocalReportFlow
             userName={userName}
             onBack={handleBackToEntry}
-            onComplete={handleReportGeneration}
+            onGenerateReport={handleReportGeneration}
           />
         )}
-        
+
         {currentScreen === 'generated' && (
           <GeneratedReports
             userName={userName}
             onBack={handleBackToEntry}
+            onViewReport={handleViewReport}
           />
         )}
-        
+
         {currentScreen === 'help' && (
           <HelpSupport
             userName={userName}
             onBack={handleBackToEntry}
           />
         )}
+
+        {showReportModal && selectedReport && (
+          <ReportModal
+            isOpen={showReportModal}
+            onClose={handleModalClose}
+            report={selectedReport}
+            userName={userName}
+          />
+        )}
       </div>
-      
-      {showReportModal && (
-        <ReportModal
-          isOpen={showReportModal}
-          onClose={handleModalClose}
-          reportData={reportData}
-          userName={userName}
-          onNestedModalChange={handleNestedModalChange}
-        />
-      )}
-    </div>
+    </AppProvider>
   );
 }
