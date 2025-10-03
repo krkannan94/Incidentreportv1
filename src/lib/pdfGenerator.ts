@@ -1,4 +1,4 @@
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import { Report } from './supabase';
 
 export const generateReportPDF = (report: Report, userName: string): void => {
